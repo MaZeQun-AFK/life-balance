@@ -6,6 +6,14 @@
 
 纯本地运行 · 不联网 · 不上传 · 单文件夹绿色程序
 
+[![release](https://img.shields.io/github/v/release/MaZeQun-AFK/life-balance?style=flat-square&color=534AB7)](https://github.com/MaZeQun-AFK/life-balance/releases/latest)
+[![license](https://img.shields.io/github/license/MaZeQun-AFK/life-balance?style=flat-square&color=534AB7)](LICENSE)
+![platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-534AB7?style=flat-square)
+
+### [⬇ 下载 Windows 版 · 免安装](https://github.com/MaZeQun-AFK/life-balance/releases/latest)
+
+解压后双击 `人生余额.exe` 就能用 —— 不用装 .NET，不用装任何东西。
+
 </div>
 
 ---
@@ -29,6 +37,8 @@
 ## English
 
 **Life Balance** is a small Windows desktop widget that keeps the numbers you'd rather not think about in the corner of your screen: how many seconds you've been alive, how many evenings of this week are actually free, and what a whole year looks like when every day you've already spent is colored in.
+
+**[⬇ Download the latest release](https://github.com/MaZeQun-AFK/life-balance/releases/latest)** — no installer, no .NET required. Unzip and run `人生余额.exe`.
 
 - Pure HTML/CSS/JS front-end, hosted in a tiny C# + WebView2 shell (~1 MB).
 - Runs **100% locally**. No network access, no telemetry, no account.
@@ -56,7 +66,13 @@
 
 > **第一次打开会怎样？** 程序不会猜你的生日。它会显示一条提示，并把页面滚到「设置」卡片（带紫色高亮），等你填上自己的出生日期。**在填充之前，页面上所有数字都是无意义的占位值。**
 
-### 方式一：不装任何东西，直接用浏览器打开（零依赖）
+### 方式一：直接下载（最省事）
+
+去 [Releases](https://github.com/MaZeQun-AFK/life-balance/releases/latest) 下载 `Life-Balance-*-win-x64.zip`，解压后双击 `人生余额.exe`。
+
+**不用装 .NET，不用装任何东西。** 只要保持 `www` 文件夹和 exe 在同一个目录里。
+
+### 方式二：不装任何东西，直接用浏览器打开（零依赖）
 
 双击 `preview.bat`，或者直接打开 `src/www/index.html`。
 
@@ -64,7 +80,7 @@
 
 > 想直接看小窗形态：`preview.bat widget`
 
-### 方式二：编译成桌面程序（推荐）
+### 方式三：自己编译成桌面程序
 
 双击 `build.bat`。它会自动编译并把成品放到 `人生余额\` 文件夹。
 
@@ -72,7 +88,7 @@
 
 > **注意：`www` 文件夹必须和 exe 放在一起**，程序从这里读界面。
 
-### 方式三：打包一个能发给别人的单文件
+### 方式四：打包一个能发给别人的单文件
 
 双击 `package-share.bat`，产物在 `分享版\`。把它压缩成 zip 发给别人，**对方什么都不用装**，解压后双击即可。
 
