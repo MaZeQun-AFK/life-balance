@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net6.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <RootNamespace>LifeBalance</RootNamespace>
+    <AssemblyName>人生余额</AssemblyName>
+    <Product>人生余额</Product>
+    <AssemblyTitle>人生余额</AssemblyTitle>
+    <Company>JARVIS</Company>
+    <Version>1.0.0</Version>
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <DebugType>none</DebugType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2903.40" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 一份放在 exe 旁边（方便直接改界面，不用重新编译） -->
+    <None Include="www\**" CopyToOutputDirectory="PreserveNewest" />
+    <!-- 同一份也嵌进 exe。旁边没有 www 时自动释放出来，
+         所以打包成单文件也能独立运行。 -->
+    <EmbeddedResource Include="www\index.html" LogicalName="www.index.html" />
+  </ItemGroup>
+
+</Project>

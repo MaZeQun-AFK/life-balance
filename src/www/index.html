@@ -1,0 +1,1161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>人生余额</title>
+<style>
+:root{
+  --text:#2C2C2A; --muted:#9A9890; --line:#E6E4DE; --track:#DCDAD3;
+  --acc:#534AB7; --warn:#A32D2D; --page:#F7F6F3; --card:#FFFFFF;
+  --sans:"Microsoft YaHei UI","PingFang SC","Hiragino Sans GB",system-ui,sans-serif;
+  --mono:Consolas,"Cascadia Mono","SF Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+
+/* ---------- 背景图 ---------- */
+#bg{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;display:none}
+body.has-bg #bg{display:block}
+#bgimg{position:absolute;inset:0;background-size:cover;background-position:center;
+  transform:scale(1.06);opacity:1}
+#tabs,#cards{position:relative;z-index:1}
+#hint{z-index:1}
+body.has-bg .card{background:rgba(255,255,255,.88)}
+/* 首次运行：高亮设置卡片 */
+.card.first-run{box-shadow:0 0 0 2px var(--acc),0 8px 24px rgba(83,74,183,.18)}body.widget.has-bg .card{background:rgba(255,255,255,.88);border-radius:12px;
+  padding:14px 16px}
+body.widget.has-bg #tabs{background:rgba(255,255,255,.88)}
+body.has-bg #hint span{background:rgba(255,255,255,.88)}
+body{font-family:var(--sans);font-size:13px;line-height:1.6;color:var(--text);
+  background:var(--page);-webkit-font-smoothing:antialiased}
+
+#cards{display:grid;gap:16px;padding:32px 24px 44px;max-width:1180px;margin:0 auto}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;
+  padding:20px 22px;min-width:0;container-type:inline-size}
+.clock-grid,.week-grid{display:block}
+.clock-grid>*,.week-grid>*{min-width:0}
+.clock-grid>.c2,.week-grid>.c2{margin-top:12px;padding-top:12px;
+  border-top:1px solid var(--line)}
+@container (min-width:640px){
+  .clock-grid,.week-grid{display:grid;align-items:center;gap:0;
+    grid-template-columns:minmax(0,1fr) 330px}
+  .clock-grid>.c2,.week-grid>.c2{margin-top:0;padding-top:0;border-top:0;
+    padding-left:46px;border-left:1px solid var(--line)}
+}
+.label{font-size:11px;color:var(--muted)}
+.ageline{display:flex;align-items:baseline;gap:6px;margin-top:2px;flex-wrap:wrap}
+.big{font-family:var(--mono);font-size:36px;font-weight:500;letter-spacing:-1px;
+  font-variant-numeric:tabular-nums;line-height:1.15}
+.mid{font-family:var(--mono);font-size:22px;font-weight:500;
+  font-variant-numeric:tabular-nums;letter-spacing:-0.5px}
+.unit{font-size:12px;color:var(--muted)}
+hr{border:0;border-top:1px solid var(--line);margin:14px 0 10px}
+.row{display:flex;justify-content:space-between;gap:16px;padding:2px 0}
+.row .k{color:var(--muted);min-width:0}
+.row .v{font-variant-numeric:tabular-nums;white-space:nowrap;flex:none}
+.row.alert .k,.row.alert .v{color:var(--warn);font-weight:500}
+.bar{height:6px;border-radius:3px;background:var(--track);overflow:hidden;margin:12px 0 10px}
+.bar>i{display:block;height:100%;background:var(--acc);border-radius:3px}
+.dots{display:flex;gap:8px;margin:12px 0 8px}
+.dot{width:12px;height:12px;border-radius:50%;background:var(--track);flex:none}
+.dot.past{background:var(--acc)}
+.dot.now{padding:2px;border:1.5px solid var(--acc);background-clip:content-box}
+.dot.now.past{background-color:var(--acc)}
+.note{font-size:11px;color:var(--muted);margin-top:12px;line-height:1.55}
+
+/* ---------- 这一年 ---------- */
+.year-head{display:flex;align-items:baseline;gap:8px}
+.year-head .spacer{flex:1}
+.ygrid{display:grid;gap:2px;margin-top:10px;max-width:560px;
+  grid-template-columns:auto repeat(31,minmax(0,1fr))}
+.ygrid>.ym{font-size:9px;color:var(--muted);line-height:1.1;padding-right:6px;
+  white-space:nowrap;display:flex;align-items:center}
+.ygrid>.yd{font-size:9px;color:var(--muted);text-align:center;line-height:1.1}
+.ygrid>.yc{aspect-ratio:1/1;border-radius:2px;background:var(--track);min-width:0;
+  cursor:pointer}
+.ygrid>.yc:hover{outline:1.5px solid var(--muted);outline-offset:1px}
+.ygrid>.yc.off{pointer-events:none}
+.ygrid>.yc.future{opacity:.4}
+.ygrid>.yc.past{background:#7F77DD}
+.ygrid>.yc.now{background:var(--acc);outline:1.5px solid var(--acc);outline-offset:1px}
+.ygrid>.yc.off{background:transparent}
+.year-body{display:block}
+.year-body>.c2{display:none}
+@container (min-width:640px){
+  .year-body{display:grid;align-items:center;
+    grid-template-columns:minmax(0,1fr) 330px}
+  .year-body>.c2{display:block;padding-left:46px;
+    border-left:1px solid var(--line)}
+}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:0 28px}
+.flds{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));
+  gap:12px;margin-top:12px}
+.fld label{display:block;font-size:11px;color:var(--muted);margin-bottom:4px}
+input,select{font:inherit;font-size:13px;color:var(--text);background:#fff;width:100%;
+  border:1px solid var(--line);border-radius:8px;padding:6px 10px;
+  font-variant-numeric:tabular-nums}
+input:focus,select:focus{outline:none;border-color:var(--acc)}
+input[type=range]{padding:0;border:0;background:none;height:18px;
+  accent-color:var(--acc);cursor:pointer}
+.bgctl{display:grid;grid-template-columns:auto minmax(80px,200px) 46px;
+  gap:8px 10px;align-items:center;margin-top:10px}
+.bgctl .v{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+button{font:inherit;cursor:pointer;border-radius:8px;border:1px solid var(--line);
+  background:#fff;color:var(--text);padding:6px 12px;font-size:12px}
+button:hover{border-color:var(--acc);color:var(--acc)}
+#hint{display:none;position:fixed;bottom:6px;left:0;right:0;text-align:center;
+  font-size:10px;color:var(--muted);pointer-events:none}
+#hint span{display:inline-block;padding:3px 10px;border-radius:10px}
+
+/* ---------- 指标编辑器 ---------- */
+#editor{position:fixed;inset:0;background:#fff;z-index:20;display:none;
+  flex-direction:column;padding:16px 18px}
+#editor.open{display:flex}
+#editor .wrap{width:100%;max-width:780px;margin:0 auto;display:flex;
+  flex-direction:column;min-height:0;flex:1}
+#ed-top{display:flex;justify-content:space-between;align-items:center;flex:none;
+  padding-bottom:10px;border-bottom:1px solid var(--line)}
+#ed-top h2{font-size:14px;font-weight:500}
+#ed-list{flex:1;overflow-y:auto;padding:6px 0;margin-bottom:8px}
+.ed-head,.ed-row{display:grid;align-items:center;gap:6px;
+  grid-template-columns:minmax(90px,1fr) 62px 78px 52px 28px 94px 78px}
+.ed-head{font-size:10px;color:var(--muted);padding:0 0 6px;position:sticky;top:0;
+  background:#fff}
+.ed-row{padding:3px 0}
+.ed-row input,.ed-row select{padding:5px 8px;font-size:12px;border-radius:6px}
+.ed-row input[type=checkbox]{padding:0;width:15px;height:15px;margin:0 auto;
+  display:block;accent-color:var(--acc)}
+.ed-total{font-size:11px;color:var(--muted);text-align:right;
+  font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis}
+.ed-acts{display:flex;gap:4px;justify-content:flex-end}
+.ed-acts button{padding:3px 7px;font-size:11px;line-height:1.3;border-radius:6px;
+  color:var(--muted)}
+.ed-del:hover{color:var(--warn);border-color:var(--warn)}
+#ed-foot{flex:none;display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+  padding-top:10px;border-top:1px solid var(--line)}
+#ed-foot .spacer{flex:1}
+.ed-box{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.ed-box .go{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px}
+@media(max-width:600px){
+  .ed-head,.ed-row{grid-template-columns:minmax(70px,1fr) 52px 64px 42px 22px 58px}
+  .c-total{display:none}
+}
+
+/* ---------- 那一天 ---------- */
+#day-modal{position:fixed;inset:0;background:rgba(44,44,42,.32);z-index:30;
+  display:none;align-items:center;justify-content:center;padding:18px}
+#day-modal.open{display:flex}
+.modal-card{background:#fff;border-radius:12px;padding:16px 18px;width:100%;
+  max-width:400px;max-height:100%;overflow:auto;border:1px solid var(--line)}
+.mhead{display:flex;align-items:center;justify-content:space-between;gap:12px;
+  margin-bottom:14px}
+.mhead span{font-size:14px;font-weight:500;font-variant-numeric:tabular-nums}
+.xbtn{padding:2px 9px;color:var(--muted);line-height:1.2}
+.swatches{display:flex;gap:9px;margin-top:8px}
+.sw{width:30px;height:30px;border-radius:8px;border:1px solid var(--line);
+  padding:0;cursor:pointer;flex:none}
+.sw.on{outline:2px solid var(--text);outline-offset:2px}
+textarea{font:inherit;font-size:13px;line-height:1.55;color:var(--text);
+  background:#fff;width:100%;border:1px solid var(--line);border-radius:8px;
+  padding:8px 10px;resize:vertical;min-height:68px;margin-top:8px}
+textarea:focus{outline:none;border-color:var(--acc)}
+.mfoot{display:flex;align-items:center;gap:10px;margin-top:16px}
+.mfoot .spacer{flex:1}
+#dm-save{border-color:var(--acc);color:var(--acc)}
+
+/* ---------- 小窗模式 ---------- */
+body.widget{background:#fff;overflow:hidden;cursor:default;user-select:none;
+  display:flex;flex-direction:column}
+body.widget #cards{flex:1;min-height:0;display:flex;flex-direction:column;
+  justify-content:center;padding:14px 20px 16px;max-width:960px;margin:0 auto;
+  width:100%}
+body.widget .card{display:none;border:0;background:transparent;padding:0;
+  min-height:0;max-height:100%;overflow-y:auto}
+body.widget .card.active{display:block}
+body.widget .card::-webkit-scrollbar{width:6px}
+body.widget .card::-webkit-scrollbar-thumb{background:var(--track);border-radius:3px}
+body.widget .card::-webkit-scrollbar-track{background:transparent}
+body.widget #hint{display:block}
+body.widget .dup{display:none}
+body.widget .metrics{grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:0 20px}
+body.widget #editor{padding:12px 14px}
+#tabs{display:none}
+body.widget #tabs{display:flex;align-items:stretch;gap:2px;flex:none;max-width:960px;
+  margin:0 auto;width:100%;padding:14px 14px 0;border-bottom:1px solid var(--line)}
+body.widget #tabs button{font-size:12px;line-height:1;color:var(--muted);background:none;
+  border:0;border-bottom:2px solid transparent;border-radius:0;
+  padding:9px 9px 7px;margin-bottom:-1px;cursor:pointer;white-space:nowrap}
+body.widget #tabs button:hover{color:var(--text)}
+body.widget #tabs button.on{color:var(--text);border-bottom-color:var(--acc);font-weight:500}
+</style>
+</head>
+<body>
+
+<div id="bg"><div id="bgimg"></div></div>
+
+<nav id="tabs">
+  <button type="button" class="on">生命时钟</button>
+  <button type="button">本周</button>
+  <button type="button">这一年</button>
+  <button type="button">这一生</button>
+  <button type="button">设置</button>
+</nav>
+
+<div id="cards">
+  <section class="card" id="card-clock">
+    <p class="label dup">生命时钟</p>
+    <div class="clock-grid">
+      <div class="c1">
+        <div class="ageline"><span class="big" id="age">—</span><span class="unit">岁</span></div>
+        <div class="bar"><i id="yearbar" style="width:0"></i></div>
+        <p class="label" id="birthday">—</p>
+        <p class="note">小数点后 7 位是展示位：只有出生时刻精确到分钟，它才是真的。</p>
+      </div>
+      <div class="c2">
+        <div class="ageline"><span class="mid" id="seconds">—</span><span class="unit">秒</span></div>
+        <div class="row"><span class="k">已活天数</span><span class="v" id="dayslived">—</span></div>
+        <div class="row"><span class="k">今天已过</span><span class="v" id="todaypct">—</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" id="card-week">
+    <p class="label dup">本周</p>
+    <div class="week-grid">
+      <div class="c1">
+        <div class="dots" id="dots"></div>
+        <div class="ageline"><span class="big" id="free">—</span><span class="unit">个自由晚上</span></div>
+      </div>
+      <div class="c2">
+        <div class="row"><span class="k">剩余天数</span><span class="v" id="daysleft">—</span></div>
+        <div class="row"><span class="k">自由晚上</span><span class="v" id="free2">—</span></div>
+        <div class="row"><span class="k">周末</span><span class="v" id="weekend">—</span></div>
+        <div class="row"><span class="k">今天已过</span><span class="v" id="todaypct2">—</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" id="card-year">
+    <div class="year-head">
+      <span class="label dup">这一年</span>
+      <span class="label" id="year-title">—</span>
+      <span class="spacer"></span>
+      <span class="label" id="year-remain">—</span>
+    </div>
+    <div class="year-body">
+      <div class="c1"><div class="ygrid" id="ygrid"></div></div>
+      <div class="c2">
+        <div class="row"><span class="k">今年进度</span><span class="v" id="ystat-pct">—</span></div>
+        <div class="row"><span class="k">今天是第</span><span class="v" id="ystat-today">—</span></div>
+        <div class="row"><span class="k">已过周末</span><span class="v" id="ystat-wpass">—</span></div>
+        <div class="row"><span class="k">剩余周末</span><span class="v" id="ystat-wleft">—</span></div>
+      </div>
+    </div>
+    <p class="note" id="year-note">—</p>
+  </section>
+
+  <section class="card" id="card-life">
+    <p class="label" id="lifespan">—</p>
+    <div class="ageline"><span class="big" id="daysremain">—</span><span class="unit">天</span></div>
+    <hr>
+    <div class="metrics" id="metrics"></div>
+  </section>
+
+  <section class="card" id="card-settings">
+    <p class="label dup">设置</p>
+    <div class="flds">
+      <div class="fld"><label>出生日期</label><input type="date" id="in-date"></div>
+      <div class="fld"><label>出生时刻（选填）</label><input type="time" id="in-time"></div>
+      <div class="fld"><label>算到几岁</label><input type="number" id="in-target" min="1" max="150"></div>
+      <div class="fld"><label>自由晚上（逗号分隔）</label><input type="text" id="in-free"></div>
+    </div>
+    <div class="ed-box">
+      <p class="label">「这一生」的指标</p>
+      <div class="go">
+        <button type="button" id="btn-edit">编辑指标</button>
+        <span class="note" id="ed-count" style="margin:0"></span>
+      </div>
+    </div>
+    <div class="ed-box">
+      <p class="label">背景图</p>
+      <div class="go">
+        <button type="button" id="bg-pick">选择图片</button>
+        <button type="button" id="bg-remove" style="display:none">移除</button>
+        <span class="note" id="bg-info" style="margin:0">未设置 · 原图存本机，不压缩</span>
+      </div>
+      <div class="bgctl" id="bgctl" style="display:none">
+        <span class="label">浓度</span>
+        <input type="range" id="bg-op" min="10" max="100" step="5">
+        <span class="v" id="bg-op-v">100%</span>
+        <span class="label">模糊</span>
+        <input type="range" id="bg-blur" min="0" max="20" step="1">
+        <span class="v" id="bg-blur-v">0px</span>
+      </div>
+      <input type="file" id="bg-file" accept="image/*" hidden>
+    </div>
+    <p class="note">改完自动存在本机，不联网、不上传。背景图按<strong>原画质</strong>存进本机数据库，不缩放、不重编码；原图不会离开这台电脑。</p>
+  </section>
+</div>
+
+<div id="editor">
+  <div class="wrap">
+    <div id="ed-top">
+      <h2>编辑「这一生」的指标</h2>
+      <button type="button" id="ed-close">完成</button>
+    </div>
+    <div class="ed-head">
+      <span>名称</span><span>频率</span><span>周期</span><span>单位</span>
+      <span>标红</span><span class="c-total" style="text-align:right">合计</span><span></span>
+    </div>
+    <div id="ed-list"></div>
+    <div id="ed-foot">
+      <button type="button" id="ed-add">＋ 添加一项</button>
+      <button type="button" id="ed-reset">恢复默认</button>
+      <span class="spacer"></span>
+      <span class="note" style="margin:0">合计 = 频率 × 剩余年数</span>
+    </div>
+  </div>
+</div>
+
+<div id="day-modal">
+  <div class="modal-card">
+    <div class="mhead">
+      <span id="dm-date">—</span>
+      <button type="button" id="dm-close" class="xbtn">✕</button>
+    </div>
+    <p class="label">标记颜色</p>
+    <div class="swatches" id="dm-swatches"></div>
+    <p class="label" style="margin-top:16px">这天有什么特殊的</p>
+    <textarea id="dm-note" rows="3" placeholder="写点什么，以后点开这一格就能看到"></textarea>
+    <div class="mfoot">
+      <button type="button" id="dm-clear">清除标记</button>
+      <span class="spacer"></span>
+      <button type="button" id="dm-save">保存</button>
+    </div>
+  </div>
+</div>
+
+<div id="hint"><span>点上方标签切换 · 或按 1 – 5</span></div>
+
+<script>
+(function () {
+  var YEAR_MS = 365.2425 * 86400 * 1000;
+  var WEEKDAYS = ['周一','周二','周三','周四','周五','周六','周日'];
+  var PER_YEAR = { day:365.2425, week:52.1775, month:12, year:1 };
+  var PER_LABEL = { day:'每天', week:'每周', month:'每月', year:'每年' };
+  var PER_ORDER = ['day', 'week', 'month', 'year'];
+
+  var DEFAULT_METRICS = [
+    { name:'吃饭',           value:3,  per:'day',   unit:'顿', alert:false },
+    { name:'和家人吃饭',     value:10, per:'year',  unit:'顿', alert:true  },
+    { name:'周末',           value:1,  per:'week',  unit:'天', alert:false },
+    { name:'法定假期',       value:16, per:'year',  unit:'天', alert:false },
+    { name:'睡到自然醒',     value:1,  per:'week',  unit:'次', alert:false },
+    { name:'见老朋友',       value:4,  per:'year',  unit:'次', alert:false },
+    { name:'回家过年',       value:1,  per:'year',  unit:'次', alert:true  },
+    { name:'长途旅行',       value:1,  per:'year',  unit:'次', alert:false },
+    { name:'读完一本课外书', value:1,  per:'month', unit:'本', alert:false }
+  ];
+
+  var PALETTE = ['#E24B4A', '#EF9F27', '#639922', '#1D9E75', '#378ADD', '#D4537E'];
+
+  var KEY = 'life-counter-settings';
+
+  // 没填过出生日期时的占位值：取当前年份的 1 月 1 日。
+  // 它只是个占位符，第一次打开会提示你去「设置」里改成自己的生日。
+  var DEFAULT_DATE = (new Date()).getFullYear() + '-01-01';
+
+  var cfg = { date:'', time:'00:00', target:85,
+              free:'周三,周五,周六', metrics:null, marks:null,
+              bg:{ mode:'', inline:'', op:100, blur:0, name:'', size:0 } };
+
+  var $ = function (id) { return document.getElementById(id); };
+  var fmt = function (n) { return Math.round(n).toLocaleString('en-US'); };
+  var widgetMode = new URLSearchParams(location.search).get('widget') === '1';
+
+  function cloneDefaults() {
+    return DEFAULT_METRICS.map(function (m) {
+      return { name:m.name, value:m.value, per:m.per, unit:m.unit, alert:m.alert };
+    });
+  }
+  function perYear(m) {
+    return (Number(m.value) || 0) * (PER_YEAR[m.per] || 1);
+  }
+
+  var isFirstRun = false;
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (raw) {
+        var saved = JSON.parse(raw);
+        ['date', 'time', 'target', 'free'].forEach(function (k) {
+          if (saved[k] !== undefined && saved[k] !== '') { cfg[k] = saved[k]; }
+        });
+        if (saved.bg && typeof saved.bg === 'object') {
+          cfg.bg = {
+            mode: (saved.bg.mode === 'idb' || saved.bg.mode === 'inline')
+              ? saved.bg.mode : (saved.bg.img ? 'inline' : ''),
+            inline: String(saved.bg.inline || saved.bg.img || ''),
+            op: Math.min(100, Math.max(10, Number(saved.bg.op) || 100)),
+            blur: Math.min(20, Math.max(0, Number(saved.bg.blur) || 0)),
+            name: String(saved.bg.name || ''),
+            size: Number(saved.bg.size) || 0
+          };
+        }
+        if (saved.marks && typeof saved.marks === 'object') {
+          cfg.marks = {};
+          Object.keys(saved.marks).forEach(function (k) {
+            var m = saved.marks[k];
+            if (m && /^\d{4}-\d{2}-\d{2}$/.test(k) && m.color) {
+              cfg.marks[k] = { color: String(m.color), note: String(m.note || '') };
+            }
+          });
+        }
+        if (Array.isArray(saved.metrics)) {
+          cfg.metrics = saved.metrics.map(function (m) {
+            return {
+              name: String(m.name || ''),
+              value: Number(m.value) || 0,
+              per: PER_YEAR[m.per] ? m.per : 'year',
+              unit: String(m.unit || ''),
+              alert: !!m.alert
+            };
+          });
+        }
+      }
+    } catch (e) {}
+    if (!cfg.metrics) { cfg.metrics = cloneDefaults(); }
+    if (!cfg.marks) { cfg.marks = {}; }
+    // 从没填过出生日期 → 用占位值，并标记为首次运行
+    if (!cfg.date) {
+      cfg.date = DEFAULT_DATE;
+      isFirstRun = true;
+    }
+  }
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(cfg)); return true; }
+    catch (e) { return false; }
+  }
+
+  function getBirth() {
+    var t = (cfg.time && cfg.time.length === 5) ? cfg.time : '00:00';
+    return new Date(cfg.date + 'T' + t + ':00');
+  }
+  function addYears(d, n) {
+    var r = new Date(d);
+    r.setFullYear(d.getFullYear() + n);
+    return r;
+  }
+
+  function state() {
+    var now = new Date();
+    var birth = getBirth();
+    var ms = now - birth;
+    var age = ms / YEAR_MS;
+    var target = Number(cfg.target) || 85;
+    var leftYears = Math.max(0, target - age);
+
+    var midnight = new Date(now); midnight.setHours(0, 0, 0, 0);
+    var dayPct = (now - midnight) / 86400000 * 100;
+
+    var dow = (now.getDay() + 6) % 7;
+    var freeList = String(cfg.free).split(/[,，\s]+/).filter(Boolean);
+    var freeEvenings = 0, weekend = 0;
+    for (var i = dow; i < 7; i++) {
+      if (freeList.indexOf(WEEKDAYS[i]) >= 0) { freeEvenings++; }
+      if (i >= 5) { weekend++; }
+    }
+
+    var nxt = addYears(birth, now.getFullYear() - birth.getFullYear());
+    if (nxt <= now) { nxt = addYears(birth, now.getFullYear() + 1 - birth.getFullYear()); }
+    var last = addYears(nxt, -1);
+    var yearFrac = Math.min(1, Math.max(0, (now - last) / (nxt - last)));
+
+    return {
+      now: now, age: age, target: target, leftYears: leftYears,
+      dayPct: Math.floor(dayPct), dow: dow, daysLeft: 7 - dow,
+      freeEvenings: freeEvenings, weekend: weekend,
+      seconds: Math.floor(ms / 1000), daysLived: Math.floor(ms / 86400000),
+      yearFrac: yearFrac, nextAge: Math.floor(age) + 1,
+      daysToBirthday: Math.max(0, Math.ceil((nxt - now) / 86400000)),
+      daysRemain: Math.round(leftYears * 365.2425)
+    };
+  }
+
+  /* ---------------- 本周 / 生命时钟 ---------------- */
+
+  function buildDots() {
+    var host = $('dots');
+    if (host.childElementCount === 7) { return; }
+    host.innerHTML = '';
+    for (var i = 0; i < 7; i++) {
+      host.appendChild(document.createElement('span')).className = 'dot';
+    }
+  }
+  function paintDots(s) {
+    var kids = $('dots').children;
+    for (var i = 0; i < kids.length; i++) {
+      kids[i].className = 'dot' + (i < s.dow ? ' past' : '') + (i === s.dow ? ' now' : '');
+    }
+  }
+
+  /* ---------------- 这一年 ---------------- */
+
+  var YEAR_TICKS = [1, 5, 10, 15, 20, 25, 31];
+
+  function cellTag(cls, text) {
+    var el = document.createElement('span');
+    el.className = cls;
+    if (text !== undefined) { el.textContent = text; }
+    return el;
+  }
+
+  var yearStats = null;
+
+  function dateKey(y, m, d) {
+    return y + '-' + (m + 1 < 10 ? '0' : '') + (m + 1) +
+           '-' + (d < 10 ? '0' : '') + d;
+  }
+
+  function onCellClick(e) {
+    var k = e.currentTarget.dataset.date;
+    if (k) { openDay(k); }
+  }
+
+  function buildYear() {
+    var host = $('ygrid');
+    host.innerHTML = '';
+    var now = new Date();
+    var year = now.getFullYear();
+    var today = new Date(year, now.getMonth(), now.getDate()).getTime();
+    var wPass = 0, wLeft = 0;
+
+    host.appendChild(cellTag('ym', ''));
+    for (var d = 1; d <= 31; d++) {
+      host.appendChild(cellTag('yd', YEAR_TICKS.indexOf(d) >= 0 ? d : ''));
+    }
+
+    for (var m = 0; m < 12; m++) {
+      host.appendChild(cellTag('ym', (m + 1) + '月'));
+      var dim = new Date(year, m + 1, 0).getDate();
+      for (var day = 1; day <= 31; day++) {
+        var cell = cellTag('yc');
+        if (day > dim) {
+          cell.classList.add('off');
+        } else {
+          var date = new Date(year, m, day);
+          var stamp = date.getTime();
+          var passedDay = stamp <= today;
+          cell.classList.add(passedDay ? 'past' : 'future');
+          if (stamp === today) { cell.classList.add('now'); }
+          if (date.getDay() % 6 === 0) {
+            if (passedDay) { wPass++; } else { wLeft++; }
+          }
+          var dk = dateKey(year, m, day);
+          cell.dataset.date = dk;
+          var mark = cfg.marks[dk];
+          if (mark) { cell.style.background = mark.color; }
+          cell.title = dk + (mark && mark.note ? ' · ' + mark.note : '');
+          cell.addEventListener('click', onCellClick);
+        }
+        host.appendChild(cell);
+      }
+    }
+
+    var start = new Date(year, 0, 1).getTime();
+    var total = Math.round((new Date(year + 1, 0, 1).getTime() - start) / 86400000);
+    var passed = Math.floor((today - start) / 86400000) + 1;
+    yearStats = {
+      year: year, passed: passed, total: total, remain: total - passed,
+      pct: Math.round(passed / total * 100), wPass: wPass, wLeft: wLeft
+    };
+  }
+
+  function renderYear() {
+    if (!yearStats) { return; }
+    $('year-title').textContent = yearStats.year;
+    $('year-remain').textContent = '还剩 ' + yearStats.remain + ' 天';
+    var marked = Object.keys(cfg.marks).length;
+    $('year-note').textContent = yearStats.passed + ' 天已过 · 点任意一格做标注' +
+      (marked ? ' · 已标记 ' + marked + ' 天' : ' · 每行一个月，每列一天');
+    $('ystat-pct').textContent = yearStats.pct + '%';
+    $('ystat-today').textContent = '第 ' + yearStats.passed + ' 天';
+    $('ystat-wpass').textContent = yearStats.wPass + ' 天';
+    $('ystat-wleft').textContent = yearStats.wLeft + ' 天';
+  }
+
+  /* ---------------- 某一天的标注 ---------------- */
+
+  var dmKey = null, dmColor = null;
+
+  function buildSwatches() {
+    var host = $('dm-swatches');
+    if (host.childElementCount) { return; }
+    PALETTE.forEach(function (c) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'sw';
+      b.style.background = c;
+      b.dataset.color = c;
+      b.addEventListener('click', function () { dmColor = c; paintSwatches(); });
+      host.appendChild(b);
+    });
+  }
+  function paintSwatches() {
+    Array.prototype.forEach.call($('dm-swatches').children, function (b) {
+      b.classList.toggle('on', b.dataset.color === dmColor);
+    });
+  }
+
+  function openDay(key) {
+    if (!cfg.marks) { cfg.marks = {}; }
+    dmKey = key;
+    var mark = cfg.marks[key] || null;
+    dmColor = mark ? mark.color : PALETTE[0];
+    var p = key.split('-');
+    $('dm-date').textContent = p[0] + ' 年 ' + Number(p[1]) + ' 月 ' + Number(p[2]) + ' 日';
+    $('dm-note').value = mark ? (mark.note || '') : '';
+    $('dm-clear').style.visibility = mark ? 'visible' : 'hidden';
+    paintSwatches();
+    $('day-modal').classList.add('open');
+  }
+
+  function closeDay() {
+    $('day-modal').classList.remove('open');
+    dmKey = null;
+  }
+
+  function afterMarkChange() {
+    save();
+    buildYear();
+    renderYear();
+  }
+
+  function wireDayModal() {
+    buildSwatches();
+    $('dm-close').addEventListener('click', closeDay);
+    $('day-modal').addEventListener('click', function (e) {
+      if (e.target === $('day-modal')) { closeDay(); }
+    });
+    $('dm-save').addEventListener('click', function () {
+      if (!dmKey) { return; }
+      if (!cfg.marks) { cfg.marks = {}; }
+      cfg.marks[dmKey] = { color: dmColor || PALETTE[0], note: $('dm-note').value.trim() };
+      closeDay();
+      afterMarkChange();
+    });
+    $('dm-clear').addEventListener('click', function () {
+      if (!dmKey || !cfg.marks) { return; }
+      delete cfg.marks[dmKey];
+      closeDay();
+      afterMarkChange();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && $('day-modal').classList.contains('open')) {
+        closeDay();
+      }
+    });
+  }
+
+  /* ---------------- 「这一生」指标 ---------------- */
+
+  function buildMetrics() {
+    var host = $('metrics');
+    host.innerHTML = '';
+    cfg.metrics.forEach(function (m) {
+      var row = document.createElement('div');
+      row.className = 'row' + (m.alert ? ' alert' : '');
+      var k = document.createElement('span');
+      k.className = 'k';
+      k.textContent = m.name || '（未命名）';
+      var v = document.createElement('span');
+      v.className = 'v';
+      row.appendChild(k);
+      row.appendChild(v);
+      host.appendChild(row);
+    });
+    var n = cfg.metrics.length;
+    $('ed-count').textContent = n ? '共 ' + n + ' 项' : '现在一项都没有';
+  }
+
+  function render(s) {
+    $('age').textContent = s.age.toFixed(7);
+    $('yearbar').style.width = (s.yearFrac * 100).toFixed(2) + '%';
+    $('birthday').textContent = isFirstRun
+      ? '还没设置出生日期 · 请到「设置」里填写'
+      : '距 ' + s.nextAge + ' 岁生日还有 ' + s.daysToBirthday + ' 天';
+    $('seconds').textContent = fmt(s.seconds);
+    $('dayslived').textContent = fmt(s.daysLived) + ' 天';
+    $('todaypct').textContent = Math.round(s.dayPct) + '%';
+
+    $('free').textContent = s.freeEvenings;
+    $('daysleft').textContent = s.daysLeft + ' 天';
+    $('free2').textContent = s.freeEvenings + ' 个';
+    $('weekend').textContent = s.weekend + ' 天';
+    $('todaypct2').textContent = Math.round(s.dayPct) + '%';
+    paintDots(s);
+
+    $('lifespan').textContent = '从 ' + Math.floor(s.age) + ' 岁到 ' + Math.round(s.target) + ' 岁';
+    $('daysremain').textContent = fmt(s.daysRemain);
+
+    renderYear();
+
+    var rows = $('metrics').children;
+    for (var i = 0; i < rows.length && i < cfg.metrics.length; i++) {
+      var n = Math.max(0, Math.round(perYear(cfg.metrics[i]) * s.leftYears));
+      rows[i].children[1].textContent = fmt(n) + ' ' + (cfg.metrics[i].unit || '');
+    }
+  }
+
+  /* ---------------- 指标编辑器 ---------------- */
+
+  function refreshTotals() {
+    var years = state().leftYears;
+    var nodes = $('ed-list').children;
+    for (var i = 0; i < nodes.length && i < cfg.metrics.length; i++) {
+      var t = nodes[i].querySelector('.ed-total');
+      if (t) {
+        var n = Math.max(0, Math.round(perYear(cfg.metrics[i]) * years));
+        t.textContent = fmt(n) + ' ' + (cfg.metrics[i].unit || '');
+      }
+    }
+    save();
+  }
+
+  function renderEditor() {
+    var host = $('ed-list');
+    host.innerHTML = '';
+    cfg.metrics.forEach(function (m, i) {
+      var row = document.createElement('div');
+      row.className = 'ed-row';
+
+      var nm = document.createElement('input');
+      nm.type = 'text'; nm.value = m.name; nm.placeholder = '名称';
+      nm.addEventListener('input', function () { m.name = nm.value; save(); });
+
+      var vl = document.createElement('input');
+      vl.type = 'number'; vl.min = '0'; vl.step = 'any'; vl.value = m.value;
+      vl.addEventListener('input', function () {
+        m.value = Number(vl.value) || 0; refreshTotals();
+      });
+
+      var pr = document.createElement('select');
+      PER_ORDER.forEach(function (k) {
+        var o = document.createElement('option');
+        o.value = k; o.textContent = PER_LABEL[k];
+        if (k === m.per) { o.selected = true; }
+        pr.appendChild(o);
+      });
+      pr.addEventListener('change', function () { m.per = pr.value; refreshTotals(); });
+
+      var un = document.createElement('input');
+      un.type = 'text'; un.value = m.unit; un.placeholder = '顿';
+      un.addEventListener('input', function () { m.unit = un.value; refreshTotals(); });
+
+      var al = document.createElement('input');
+      al.type = 'checkbox'; al.checked = !!m.alert; al.title = '标红强调';
+      al.addEventListener('change', function () { m.alert = al.checked; save(); });
+
+      var tt = document.createElement('span');
+      tt.className = 'ed-total c-total';
+
+      var acts = document.createElement('div');
+      acts.className = 'ed-acts';
+      var up = document.createElement('button');
+      up.type = 'button'; up.textContent = '↑'; up.title = '上移';
+      var dn = document.createElement('button');
+      dn.type = 'button'; dn.textContent = '↓'; dn.title = '下移';
+      var del = document.createElement('button');
+      del.type = 'button'; del.textContent = '✕'; del.className = 'ed-del'; del.title = '删除';
+      acts.appendChild(up); acts.appendChild(dn); acts.appendChild(del);
+
+      up.addEventListener('click', function () {
+        if (i > 0) {
+          cfg.metrics.splice(i - 1, 0, cfg.metrics.splice(i, 1)[0]);
+          save(); renderEditor();
+        }
+      });
+      dn.addEventListener('click', function () {
+        if (i < cfg.metrics.length - 1) {
+          cfg.metrics.splice(i + 1, 0, cfg.metrics.splice(i, 1)[0]);
+          save(); renderEditor();
+        }
+      });
+      del.addEventListener('click', function () {
+        cfg.metrics.splice(i, 1);
+        save(); renderEditor();
+      });
+
+      [nm, vl, pr, un, al, tt, acts].forEach(function (el) { row.appendChild(el); });
+      host.appendChild(row);
+    });
+    refreshTotals();
+  }
+
+  function openEditor() {
+    renderEditor();
+    $('editor').classList.add('open');
+  }
+  function closeEditor() {
+    $('editor').classList.remove('open');
+    buildMetrics();
+    render(state());
+  }
+
+  function wireEditor() {
+    $('btn-edit').addEventListener('click', openEditor);
+    $('ed-close').addEventListener('click', closeEditor);
+    $('ed-add').addEventListener('click', function () {
+      cfg.metrics.push({ name:'', value:1, per:'year', unit:'次', alert:false });
+      save(); renderEditor();
+      var box = $('ed-list');
+      box.scrollTop = box.scrollHeight;
+      var last = box.lastElementChild;
+      if (last) { last.querySelector('input').focus(); }
+    });
+    $('ed-reset').addEventListener('click', function () {
+      if (window.confirm('恢复成默认的那 9 项？你现在改的会全部丢掉。')) {
+        cfg.metrics = cloneDefaults();
+        save(); renderEditor();
+      }
+    });
+  }
+
+  /* ---------------- 背景图 ---------------- */
+  /* 首选用 IndexedDB 把原图原封不动存下来——不缩放、不重编码、不掉画质。
+     只有在 IndexedDB 用不了的时候（例如用 file:// 直接打开浏览器版），
+     才退回「压缩后塞进 localStorage」的老办法。 */
+
+  var IDB_NAME = 'life-balance';
+  var IDB_STORE = 'media';
+
+  var BG_FALLBACK = [
+    { max:2400, q:0.90 },
+    { max:1920, q:0.86 },
+    { max:1600, q:0.82 },
+    { max:1200, q:0.78 },
+    { max:900,  q:0.72 }
+  ];
+
+  var bgUrl = '';
+
+  function idb() {
+    return new Promise(function (resolve, reject) {
+      if (!window.indexedDB) { reject(new Error('no indexeddb')); return; }
+      var req;
+      try { req = indexedDB.open(IDB_NAME, 1); }
+      catch (e) { reject(e); return; }
+      req.onupgradeneeded = function () {
+        var db = req.result;
+        if (!db.objectStoreNames.contains(IDB_STORE)) { db.createObjectStore(IDB_STORE); }
+      };
+      req.onsuccess = function () { resolve(req.result); };
+      req.onerror = function () { reject(req.error || new Error('open failed')); };
+      req.onblocked = function () { reject(new Error('blocked')); };
+    });
+  }
+
+  function idbWrite(blob) {
+    return idb().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        var tx = db.transaction(IDB_STORE, 'readwrite');
+        tx.objectStore(IDB_STORE).put(blob, 'bg');
+        tx.oncomplete = function () { db.close(); resolve(true); };
+        tx.onerror = function () { db.close(); reject(tx.error); };
+        tx.onabort = function () { db.close(); reject(tx.error); };
+      });
+    });
+  }
+
+  function idbRead() {
+    return idb().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        var tx = db.transaction(IDB_STORE, 'readonly');
+        var r = tx.objectStore(IDB_STORE).get('bg');
+        r.onsuccess = function () { db.close(); resolve(r.result || null); };
+        r.onerror = function () { db.close(); reject(r.error); };
+      });
+    });
+  }
+
+  function idbWipe() {
+    return idb().then(function (db) {
+      return new Promise(function (resolve) {
+        var tx = db.transaction(IDB_STORE, 'readwrite');
+        tx.objectStore(IDB_STORE).delete('bg');
+        tx.oncomplete = function () { db.close(); resolve(true); };
+        tx.onerror = function () { db.close(); resolve(false); };
+      });
+    });
+  }
+
+  function sizeText(bytes) {
+    if (!bytes) { return ''; }
+    return bytes >= 1048576
+      ? (bytes / 1048576).toFixed(1) + ' MB'
+      : Math.max(1, Math.round(bytes / 1024)) + ' KB';
+  }
+
+  function paintBg() {
+    var has = !!bgUrl;
+    document.body.classList.toggle('has-bg', has);
+    $('bgimg').style.backgroundImage = has ? 'url("' + bgUrl + '")' : 'none';
+    if (has) {
+      $('bgimg').style.opacity = (cfg.bg.op / 100).toFixed(2);
+      $('bgimg').style.filter = cfg.bg.blur ? 'blur(' + cfg.bg.blur + 'px)' : 'none';
+    }
+    $('bg-op').value = cfg.bg.op;
+    $('bg-op-v').textContent = cfg.bg.op + '%';
+    $('bg-blur').value = cfg.bg.blur;
+    $('bg-blur-v').textContent = cfg.bg.blur + 'px';
+    $('bgctl').style.display = has ? 'grid' : 'none';
+    $('bg-remove').style.display = has ? '' : 'none';
+    $('bg-pick').textContent = has ? '换一张' : '选择图片';
+    if (has) {
+      $('bg-info').textContent = (cfg.bg.mode === 'idb' ? '原图画质' : '压缩存储') +
+        (cfg.bg.size ? ' · ' + sizeText(cfg.bg.size) : '') +
+        (cfg.bg.name ? ' · ' + cfg.bg.name : '');
+    } else {
+      $('bg-info').textContent = '未设置 · 原图存本机，不压缩';
+    }
+  }
+
+  function takeUrl(blob) {
+    if (bgUrl && bgUrl.indexOf('blob:') === 0) { URL.revokeObjectURL(bgUrl); }
+    bgUrl = URL.createObjectURL(blob);
+  }
+
+  function restoreBg() {
+    if (!cfg.bg) { cfg.bg = { mode:'', inline:'', op:100, blur:0, name:'', size:0 }; }
+
+    if (cfg.bg.mode === 'idb') {
+      idbRead().then(function (blob) {
+        if (blob && blob.size) {
+          takeUrl(blob);
+          cfg.bg.size = blob.size;
+        } else {
+          cfg.bg.mode = ''; cfg.bg.name = ''; cfg.bg.size = 0;
+          save();
+        }
+        paintBg();
+      }).catch(function () { paintBg(); });
+      return;
+    }
+
+    bgUrl = cfg.bg.inline || '';
+    paintBg();
+  }
+
+  /* file:// 下的退路：压缩后塞进 localStorage */
+  function shrinkImage(file, cb) {
+    var reader = new FileReader();
+    reader.onerror = function () { cb(null); };
+    reader.onload = function (ev) {
+      var im = new Image();
+      im.onerror = function () { cb(null); };
+      im.onload = function () {
+        var out = null;
+        for (var i = 0; i < BG_FALLBACK.length; i++) {
+          var st = BG_FALLBACK[i];
+          var scale = Math.min(1, st.max / Math.max(im.width, im.height));
+          var cv = document.createElement('canvas');
+          cv.width = Math.max(1, Math.round(im.width * scale));
+          cv.height = Math.max(1, Math.round(im.height * scale));
+          cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height);
+          out = cv.toDataURL('image/jpeg', st.q);
+          if (out.length < 3200000) { break; }
+        }
+        cb(out);
+      };
+      im.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function storeInline(file) {
+    shrinkImage(file, function (data) {
+      if (!data) { $('bg-info').textContent = '这张图读不了，换一张试试'; return; }
+      var backup = cfg.bg.inline;
+      cfg.bg.mode = 'inline';
+      cfg.bg.inline = data;
+      cfg.bg.name = file.name || '';
+      cfg.bg.size = Math.round(data.length * 0.75);
+      if (!save()) {
+        cfg.bg.inline = backup;
+        $('bg-info').textContent = '存不下';
+        window.alert('压缩之后浏览器还是存不下。换一张小一点的图片。');
+        paintBg();
+        return;
+      }
+      bgUrl = data;
+      paintBg();
+    });
+  }
+
+  function wireBg() {
+    $('bg-pick').addEventListener('click', function () { $('bg-file').click(); });
+
+    $('bg-file').addEventListener('change', function () {
+      var files = $('bg-file').files;
+      if (!files || !files[0]) { return; }
+      var file = files[0];
+      $('bg-file').value = '';
+
+      if (file.type && file.type.indexOf('image/') !== 0) {
+        $('bg-info').textContent = '这不是图片文件';
+        return;
+      }
+      if (file.size > 40 * 1024 * 1024) {
+        $('bg-info').textContent = '超过 40MB 了';
+        window.alert('这张图超过 40MB，换一张小一点的吧。');
+        return;
+      }
+
+      $('bg-info').textContent = '正在保存原图…';
+      idbWrite(file).then(function () {
+        cfg.bg.mode = 'idb';
+        cfg.bg.inline = '';
+        cfg.bg.name = file.name || '';
+        cfg.bg.size = file.size;
+        save();
+        takeUrl(file);
+        paintBg();
+      }).catch(function () {
+        storeInline(file);
+      });
+    });
+
+    $('bg-remove').addEventListener('click', function () {
+      idbWipe().catch(function () {});
+      if (bgUrl && bgUrl.indexOf('blob:') === 0) { URL.revokeObjectURL(bgUrl); }
+      bgUrl = '';
+      cfg.bg.mode = '';
+      cfg.bg.inline = '';
+      cfg.bg.name = '';
+      cfg.bg.size = 0;
+      save();
+      paintBg();
+    });
+
+    $('bg-op').addEventListener('input', function () {
+      cfg.bg.op = Number($('bg-op').value) || 100;
+      paintBg();
+      save();
+    });
+
+    $('bg-blur').addEventListener('input', function () {
+      cfg.bg.blur = Number($('bg-blur').value) || 0;
+      paintBg();
+      save();
+    });
+  }
+
+  /* ---------------- 其它交互 ---------------- */
+
+  var lastSecond = -1;
+  var lastDayKey = '';
+  function loop() {
+    var s = state();
+    var key = s.now.getFullYear() + '/' + s.now.getMonth() + '/' + s.now.getDate();
+    if (key !== lastDayKey) { lastDayKey = key; buildYear(); renderYear(); }
+    if (s.seconds !== lastSecond) { lastSecond = s.seconds; render(s); }
+    else {
+      $('age').textContent = s.age.toFixed(7);
+      $('seconds').textContent = fmt(s.seconds);
+      $('todaypct').textContent = Math.round(s.dayPct) + '%';
+      $('todaypct2').textContent = Math.round(s.dayPct) + '%';
+      $('yearbar').style.width = (s.yearFrac * 100).toFixed(2) + '%';
+    }
+    requestAnimationFrame(loop);
+  }
+
+  function wireInputs() {
+    var d = $('in-date'), t = $('in-time'), g = $('in-target'), f = $('in-free');
+    // 首次运行：输入框留空，让用户主动填自己的生日，
+    // 而不是把一个示例日期伪装成「已设置」。
+    d.value = isFirstRun ? '' : cfg.date;
+    t.value = isFirstRun ? '' : cfg.time;
+    g.value = cfg.target; f.value = cfg.free;
+    function sync() {
+      if (d.value) {
+        cfg.date = d.value;
+        if (isFirstRun) {
+          // 用户填了出生日期，退出首次运行状态
+          isFirstRun = false;
+          var hint = $('hint');
+          if (hint && !widgetMode) { hint.style.display = 'none'; }
+        }
+      }
+      cfg.time = t.value || '';
+      cfg.target = Number(g.value) || 85;
+      cfg.free = f.value || '周三,周五,周六';
+      save();
+      lastSecond = -1;   // 让下一帧 loop 重绘
+    }
+    [d, t, g, f].forEach(function (el) {
+      el.addEventListener('change', sync);
+      el.addEventListener('input', sync);
+    });
+  }
+
+  function wireTabs() {
+    var cards = Array.prototype.slice.call(document.querySelectorAll('.card'));
+    var tabs = Array.prototype.slice.call(document.querySelectorAll('#tabs button'));
+    function show(i) {
+      i = Math.max(0, Math.min(cards.length - 1, i));
+      cards.forEach(function (c, k) { c.classList.toggle('active', k === i); });
+      tabs.forEach(function (b, k) { b.classList.toggle('on', k === i); });
+    }
+    tabs.forEach(function (btn, i) {
+      btn.addEventListener('click', function () { show(i); });
+    });
+    document.addEventListener('keydown', function (e) {
+      if ($('editor').classList.contains('open') ||
+          $('day-modal').classList.contains('open')) { return; }
+      var active = tabs.findIndex(function (b) { return b.classList.contains('on'); });
+      if (e.key >= '1' && e.key <= '5') { show(Number(e.key) - 1); }
+      else if (e.key === 'ArrowRight') { show(active + 1); }
+      else if (e.key === 'ArrowLeft') { show(active - 1); }
+    });
+    var start = Number(new URLSearchParams(location.search).get('tab') || 1) - 1;
+    show(isNaN(start) ? 0 : start);
+  }
+
+  load();
+  buildDots();
+  buildYear();
+  buildMetrics();
+  wireInputs();
+  wireEditor();
+  wireDayModal();
+  wireBg();
+  restoreBg();
+  if (widgetMode) {
+    document.body.classList.add('widget');
+    wireTabs();
+  }
+  render(state());
+  requestAnimationFrame(loop);
+
+  // 首次打开：给出引导，并滚动到「设置」卡片
+  if (isFirstRun && !widgetMode) {
+    var hint = $('hint');
+    if (hint) {
+      hint.innerHTML = '<span>第一次用？先到「设置」里把出生日期改成你自己的</span>';
+      hint.style.display = 'block';
+    }
+    var cardSettings = $('card-settings');
+    if (cardSettings) {
+      cardSettings.classList.add('first-run');
+      setTimeout(function () {
+        cardSettings.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 400);
+    }
+  }
+})();
+</script>
+</body>
+</html>

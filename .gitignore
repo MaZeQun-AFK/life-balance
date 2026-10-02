@@ -1,0 +1,42 @@
+# ---- 构建产物（不要提交，仓库里只放源码）----
+/人生余额/
+/分享版/
+/bin/
+/obj/
+**/bin/
+**/obj/
+
+# ---- 打包出来的压缩包 ----
+*.zip
+*.7z
+*.rar
+
+# ---- 本地数据：这里面是你的出生日期和标注，绝对不要提交 ----
+migrate.json
+migrate.js
+local-data.js
+*.local.json
+*.local.js
+
+# ---- 上传工具：只在自己机器上用，不要提交 ----
+# 上传配置.txt 里写着你的邮箱，更要挡住
+上传到GitHub.bat
+上传配置.txt
+
+# ---- 编辑器 / IDE ----
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.userprefs
+
+# ---- Windows ----
+Thumbs.db
+desktop.ini
+ehthumbs.db
+$RECYCLE.BIN/
+
+# ---- 系统 ----
+.DS_Store
+desktop.ini
